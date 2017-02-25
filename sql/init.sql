@@ -1,11 +1,13 @@
 /*
    As it is crucial to distinguish between development and production environments,
    this script creates a user and a database specific for each environment.
+   The dev user can access MySQL from anywhere while
+   the prod user can only access MySQL from localhost
 */
 
 -- Create users for SQL Authentication
-CREATE USER 'airbnb_user_dev'@'%' IDENTIFIED BY ''; -- Can access to MySQL from anywhere
-CREATE USER 'airbnb_user_prod'@'localhost' IDENTIFIED BY ''; -- Can access to MySQL from only localhost
+CREATE USER 'airbnb_user_dev'@'%' IDENTIFIED BY '';
+CREATE USER 'airbnb_user_prod'@'localhost' IDENTIFIED BY '';
 
 -- Create 2 databases in UTF8 (utf8_general_ci)
 CREATE DATABASE airbnb_dev CHARACTER SET utf8 COLLATE utf8_general_ci;
