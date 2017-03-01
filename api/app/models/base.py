@@ -21,11 +21,11 @@ class BaseModel(peewee.Model):
     updated_at = peewee.DateTimeField(default=datetime.now, formats='%Y/%m/%d %H:%M:%S')
 
     def save(self, *args, **kwargs):
-        ''' Save the Model to the database '''
+        """Save the Model to the database"""
         self.updated_at = datetime.now().strftime('%Y/%m/%d %H:%M:%S')
         peewee.Model.save(self)
 
     class Meta:
-        ''' Connect to the database '''
+        """Connect to the database"""
         database = database
         order_by = ("id", )
