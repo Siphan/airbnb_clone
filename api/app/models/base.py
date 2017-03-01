@@ -1,7 +1,7 @@
 """
-    This base module defines the model that will be the base
-    of all our classes. It is itself inherited from a Model
-    from peewee, a Python object relational mapper (ORM).
+This base module defines the model that will be the base
+of all our classes. It is itself inherited from a Model
+from peewee, a Python object relational mapper (ORM).
 """
 
 import peewee

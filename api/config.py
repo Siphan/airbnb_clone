@@ -1,8 +1,6 @@
 """
-    api/ dir will contain all the code for our RestAPI
-    Note to self: this script is built during 181/2
-    This script defines some variables for our RestAPI
-    that are respective to the development and production environments
+This script defines some variables for our RestAPI
+that are respective to the development and production environments
 """
 
 import os
