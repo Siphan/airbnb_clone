@@ -13,3 +13,22 @@ class Place(BaseModel):
     price_by_night = peewee.IntegerField(default=0)
     latitude = peewee.FloatField()
     longitude = peewee.FloatField()
+
+    def to_hash(self):
+        """Return a hash with all info on bookable accomodation"""
+        hash = {
+            'id': self.id,
+            'created_at': self.created_at.strftime("%Y/%m/%d %H:%M:%S"),
+            'updated_at': self.updated_at.strftime("%Y/%m/%d %H:%M:%S"),
+            'owner_id': self.owner_id,
+            'city_id': self.city_id,
+            'name': self.name,
+            'description': self.description,
+            'number_rooms': self.number_rooms,
+            'number_bathrooms': self.number_bathrooms,
+            'max_guest': self.max_guest,
+            'price_by_night': self.price_by_night,
+            'latitude': self.latitude,
+            'longitude': self.longitude
+        }
+        return hash
