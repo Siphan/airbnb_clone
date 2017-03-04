@@ -1,3 +1,4 @@
+"""Import all models"""
 from base import *
 from place import Place
 from user import User

@@ -1,3 +1,4 @@
+"""Import all models"""
 from peewee import Model
 from playhouse.fields import ManyToManyField
 from place import Place

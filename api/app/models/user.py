@@ -1,3 +1,4 @@
+"""Import base model and hashlib for password encryption"""
 from base import *
 import hashlib
 

@@ -1,3 +1,4 @@
+"""Import base model as well as state model since it is linked to parent table"""
 from base import *
 from state import State
 

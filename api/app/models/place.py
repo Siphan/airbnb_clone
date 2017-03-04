@@ -1,3 +1,4 @@
+"""Import base and other models that accomodation is linked to"""
 from base import *
 from user import User
 from city import City

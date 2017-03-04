@@ -1,3 +1,4 @@
+"""Import base model"""
 from base import *
 
 class State(BaseModel):
