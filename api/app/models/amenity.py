@@ -1,6 +1,7 @@
 from base import *
 
 class Amenity(BaseModel):
+    """Define accomodation's Amenity model"""
     name = peewee.CharField(128, null=False)
 
     def to_hash(self):

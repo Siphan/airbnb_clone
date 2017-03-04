@@ -3,6 +3,7 @@ from user import User
 from city import City
 
 class Place(BaseModel):
+    """Define bookable accomodation model"""
     owner = peewee.ForeignKeyField(User, related_name="places")
     city = peewee.ForeignKeyField(City, related_name="places")
     name = peewee.CharField(128, null=False)

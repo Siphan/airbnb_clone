@@ -16,6 +16,7 @@ database = peewee.MySQLDatabase( DATABASE['database'],
                           passwd=DATABASE['password'] )
 
 class BaseModel(peewee.Model):
+    """Define base model"""
     id = peewee.PrimaryKeyField(unique=True)
     created_at = peewee.DateTimeField(default=datetime.now, formats='%Y/%m/%d %H:%M:%S')
     updated_at = peewee.DateTimeField(default=datetime.now, formats='%Y/%m/%d %H:%M:%S')

@@ -3,6 +3,7 @@ from place import Place
 from user import User
 
 class PlaceBook(BaseModel):
+    """Define booking model"""
     place = peewee.ForeignKeyField(Place)
     user = peewee.ForeignKeyField(User, related_name="places_booked")
     is_validated = peewee.BooleanField(default=False)

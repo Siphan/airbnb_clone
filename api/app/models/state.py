@@ -1,6 +1,7 @@
 from base import *
 
 class State(BaseModel):
+    """Define State model"""
     name = peewee.CharField(128, null=False, unique=True)
 
     def to_hash(self):
