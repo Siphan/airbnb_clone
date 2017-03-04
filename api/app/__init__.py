@@ -1,3 +1,7 @@
+"""
+This script creates a Flask application
+and makes it global to our Python app
+"""
 from flask import Flask
 from flask_json import FlaskJSON
 import config
