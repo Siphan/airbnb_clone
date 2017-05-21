@@ -1,60 +1,68 @@
-"""Import app and models"""
+from flask import request, jsonify
+from app.models.state import State
+from app.models.city import City
+from return_styles import ListStyle
 from app import app
-from app.models.city import *
-from app.models.state import *
 
-"""Import packages"""
-from flask_json import jsonify, request
 
-@app.route('/states/<state_id>/cities', methods=['GET', 'POST'])
-def cities(state_id):
-    """Get a list of all cities in the database"""
-
+@app.route('/states/<int:state_id>/cities', methods=['GET', 'POST'])
+def handle_city(state_id):
+    '''Returns all the cities in the state with the id passed as `state_id`
+    from the database as JSON objects with a GET request, or adds a new state
+    to the database with a POST request. Refer to exception rules of peewee
+    `get()` method for additional explanation of how the POST request is
+    handled:
+    http://docs.peewee-orm.com/en/latest/peewee/api.html#SelectQuery.get
+    '''
     if request.method == 'GET':
-
-        city_query = City.select().join(State).where(State.id == state_id)
-        response = [i.to_hash() for i in city_query]
-
-        if response:
-            return jsonify(response)
-
-        output = {'error': 'No results found'}
-        response = jsonify(output)
-        response.status_code = 404
-        return response
+        list = ListStyle().list((City
+                                 .select()
+                                 .where(City.state == state_id)),
+                                request)
+        return jsonify(list), 200
 
     elif request.method == 'POST':
-
-        dup_name_id = City.select().where(City.name == request.form['name']).join(State).where(State.id == state_id)
-
-        if not dup_name_id:
-            city = City.create(
-                name=request.form['name'],
-                state_id=state_id
-            )
-            return jsonify(city.to_hash())
-
-        else:
-            output = {'code': 10002, 'msg': 'City already exists in this state'}
-            response = jsonify(output)
-            response.status_code = 409
-            return response
+        try:
+            City.select().where((City.name == request.form['name']) &
+                                (City.state == state_id)
+                                ).get()
+            return jsonify(code=10002, msg="City already exists in this " +
+                           "state"), 409
+        except City.DoesNotExist:
+            '''Check that all the required parameters are made in request.'''
+            required = set(["name"]) <= set(request.values.keys())
+            if required is False:
+                return jsonify(msg="Missing parameter."), 400
+            city = City.create(name=request.form['name'], state=state_id)
+            return jsonify(city.to_dict()), 200
 
 
-@app.route('/states/<state_id>/cities/<city_id>', methods=['GET', 'DELETE'])
-def del_cities(state_id, city_id):
-    """Delete a given city from the database"""
+@app.route('/states/<int:state_id>/cities/<int:city_id>',
+           methods=['GET', 'DELETE'])
+def handle_city_id(state_id, city_id):
+    '''Select the city with the id from the database and store as the variable
+    `city` with a GET request method. Remove the city with this id from the
+    database with a DELETE request method.
+
+    Keyword arguments:
+    state_id: The state of the city from the database.
+    city_id: The id of the city from the database.
+    '''
+    try:
+        city = City.select().where((City.id == city_id) &
+                                   (City.state == state_id)
+                                   ).get()
+    except City.DoesNotExist:
+        raise jsonify(msg="There is no city with this id in this state."), 400
 
     if request.method == 'GET':
-
-        city_query = City.get(City.id == city_id)
-        return jsonify(city_query.to_hash())
+        return jsonify(city.to_dict())
 
     elif request.method == 'DELETE':
-        """Delete city from the given state"""
-
-        city_query = City.get(City.id == city_id)
-        city_query.delete_instance()
-        city_query.save()
-        response = {'msg': 'Deleted city at id: ' +  city_id}
-        return jsonify(response)
+        try:
+            city = City.delete().where((City.id == city_id) &
+                                       (City.state == state_id))
+        except City.DoesNotExist:
+            raise Exception("There is no city with this id, in this state.")
+        city.execute()
+        return jsonify(msg="City deleted successfully."), 200

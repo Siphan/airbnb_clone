@@ -1,30 +1,36 @@
-"""Import base model and hashlib for password encryption"""
+'''Imports BaseModel and defines a User class that inherits from BaseModel
+class.
+'''
 from base import *
-import hashlib
+from peewee import *
+import md5
+from flask import jsonify
+import json
+
 
 class User(BaseModel):
-    """Define all info needed for each user"""
-    email = peewee.CharField(128, null=False, unique=True)
-    password = peewee.CharField(128, null=False)
-    first_name = peewee.CharField(128, null=False)
-    last_name = peewee.CharField(128, null=False)
-    is_admin = peewee.BooleanField(default=False)
+    '''Define a User class for the user table of the database.'''
+    email = CharField(128, null=False, unique=True)
+    password = CharField(128, null=False)
+    first_name = CharField(128, null=False)
+    last_name = CharField(128, null=False)
+    is_admin = BooleanField(default=False)
 
     def set_password(self, clear_password):
-        """Convert user password to MD5 encryption"""
-        passwd = hashlib.md5()
-        passwd.update(self.clear_password)
-        self.password = passwd.digest()
+        '''Method to convert password passed as parameter to md5 hash and
+        update the user's password to the hashed string.
 
-    def to_hash(self):
-        """Return a hash with all user's info"""
-        hash = {
-            'id': self.id,
-            'created_at': self.created_at.strftime("%Y/%m/%d %H:%M:%S"),
-            'updated_at': self.updated_at.strftime("%Y/%m/%d %H:%M:%S"),
-            'email': self.email,
-            'first_name': self.first_name,
-            'last_name': self.last_name,
-            'is_admin': self.is_admin
-        }
-        return hash
+        Keyword arguments:
+        clear_password -- A new password string.
+        '''
+        self.password = md5.new(clear_password).digest()
+
+    def to_dict(self):
+        '''Returns the BaseModel data, along with this model model's data as a
+        hash.
+        '''
+        data = {}
+        data['email'] = self.email
+        data['first_name'] = self.first_name
+        data['last_name'] = self.last_name
+        return dict(self.base_to_dict().items() + data.items())

@@ -1,24 +1,15 @@
-"""
- This script creates a Flask application
- and makes it global to our Python app.
- It also adds a MySQL instance to our code.
-"""
 from flask import Flask
 from flask_json import FlaskJSON
-import config
-from flask_mysqldb import MySQL
+from flask_cors import CORS, cross_origin
+import os
 
-__all__ = ["config"]
-
-"""
-Initialize Flask application
-An instance of this class will be our WSGI application.
-"""
 app = Flask(__name__)
-mysql = MySQL(app)
+json = FlaskJSON(app)
 
-# Initialize FlaskJSON instance with Flask app
-FlaskJSON(app)
+env = os.environ.get("AIRBNB_ENV")
+cors = CORS(app, resources={r"/*": {"origins": "*"}})
 
-"""Import all views"""
-from views import *
+"""List of origins for cross-origin connection in production."""
+if env == "production":
+    cors = CORS(app, resources={r"/*": {"origins": ["https://127.0.0.1/",
+                                                    "http://158.69.92.186/"]}})

@@ -1,119 +1,183 @@
-"""Import app and models"""
-from app import app
+from flask import request, jsonify
+from datetime import datetime, timedelta
 from app.models.place import Place
+from app.models.place_book import PlaceBook
+from app.models.state import State
 from app.models.city import City
+from return_styles import ListStyle
+from app import app
 
-"""Import packages"""
-from flask_json import jsonify, request
 
 @app.route('/places', methods=['GET', 'POST'])
-def places():
-    """Get a list of all bookable accomodations in the database"""
-
+def handle_places():
+    '''Returns all the places with a GET request, or adds a new city to the
+    database with a POST request. The parameters passed to the POST request
+    iterate through the data and set the corresponding attributes of the
+    instance to  be inserted into the database. Will not set attribute passed
+    as `updated_at` or `created_at`.
+    '''
     if request.method == 'GET':
-
-        place_query = Place.select()
-        response = [i.to_hash() for i in place_query]
-
-        if response:
-            return jsonify(response)
-
-        error = {'error': 'No results found'}
-        response = jsonify(error)
-        response.status_code = 404
-        return response
+        list = ListStyle().list(Place.select(), request)
+        return jsonify(list), 200
 
     elif request.method == 'POST':
+        params = request.values
+        place = Place()
 
-        place = Place.create(
-            owner_id=request.form['owner_id'],
-            city_id=request.form['city_id'],
-            name=request.form['name'],
-            description=request.form['description'],
-            number_rooms=request.form['number_rooms'],
-            number_bathrooms=request.form['number_bathrooms'],
-            max_guest=request.form['max_guest'],
-            price_by_night=request.form['price_by_night'],
-            latitude=request.form['latitude'],
-            longitude=request.form['longitude']
-        )
-        return jsonify(place.to_hash())
+        '''Check that all the required parameters are made in request.'''
+        required = set(["owner", "city", "name"]) <= set(request.values.keys())
+        if required is False:
+            return jsonify(msg="Missing parameter."), 400
 
-@app.route('/places/<place_id>', methods=['GET', 'PUT', 'DELETE'])
-def put_places(place_id):
-    """Update an accomodation in the database"""
+        for key in params:
+            if key == 'updated_at' or key == 'created_at':
+                continue
+            setattr(place, key, params.get(key))
+        place.save()
+        return jsonify(place.to_dict()), 200
+
+
+@app.route('/places/<int:place_id>', methods=['GET', 'PUT', 'DELETE'])
+def handle_place_id(place_id):
+    '''Select the place with the id from the database and store as the variable
+    `place`. Return that place's hash with a GET request method. Update the
+    attributes, excepting  `owner` and `city` of the place with PUT request
+    method. Remove the the place with this id from the database with a DELETE
+    request method. Will not set attribute passed as `updated_at`,
+    `created_at`, `owner`, or `city`.
+
+    Keyword arguments:
+    place_id: The id of the place.
+    '''
+    try:
+        place = Place.select().where(Place.id == place_id).get()
+    except Place.DoesNotExist:
+        raise Exception("There is no place with this id.")
 
     if request.method == 'GET':
-
-        place_query = Place.get(Place.id == place_id)
-        return jsonify(place_query.to_hash())
+        return jsonify(place.to_dict()), 200
 
     elif request.method == 'PUT':
-
-        place_query = Place.get(Place.id == place_id)
-
-        for key in request.values.keys():
-            if key == 'name':
-                place_query.name = request.values[key]
-            elif key == 'description':
-                place_query.description = request.values[key]
-            elif key == 'number_rooms':
-                place_query.number_rooms = request.values[key]
-            elif key == 'number_bathrooms':
-                place_query.number_bathrooms = request.values[key]
-            elif key == 'max_guest':
-                place_query.max_guest = request.values[key]
-            elif key == 'price_by_night':
-                place_query.price_by_night = request.values[key]
-            elif key == 'latitude':
-                place_query.latitude = request.values[key]
-            elif key == 'longitude':
-                place_query.longitude = request.values[key]
-            elif key == 'owner' or key == 'city':
-                output = {'error': key + ' Not accepted'}
-                error = jsonify(output)
-                error.status_code = 400
-                return error
-
-        return jsonify(place_query.to_hash())
+        params = request.values
+        for key in params:
+            if key == 'owner' or key == 'city':
+                return jsonify(msg="You may not update the %s." % key), 409
+            if key == 'updated_at' or key == 'created_at':
+                continue
+            else:
+                setattr(place, key, params.get(key))
+        place.save()
+        return jsonify(msg="Place information updated successfully."), 200
 
     elif request.method == 'DELETE':
+        try:
+            place = Place.delete().where(Place.id == place_id)
+        except Place.DoesNotExist:
+            raise Exception("There is no place with this id.")
+        place.execute()
+        return jsonify(msg="Place deleted successfully."), 200
 
-        place_query = Place.get(Place.id == place_id)
-        place_query.delete_instance()
-        place_query.save()
-        response = {'msg': 'Deleted place at id: ' + place_id}
-        return jsonify(response)
 
-@app.route('/states/<state_id>/cities/<city_id>/places', methods=['GET', 'POST'])
-def get_city_places(state_id, city_id):
-    """Get a list of all accomodations in a given city in the database"""
+@app.route('/places/<int:place_id>/available', methods=['POST'])
+def handle_place_availibility(place_id):
+    '''Checks to see if a place is available on a particular date that is
+    passed as parameter with a POST request. Data required is 'year', 'month',
+    and 'day'.
+
+    Keyword arguments:
+    place_id -- The id of the place to determine if the date is already booked.
+    '''
+    if request.method == 'POST':
+        try:
+            Place.select().where(Place.id == place_id).get()
+        except Place.DoesNotExist:
+            return jsonify("No place exists with this id."), 400
+
+        '''Check that all the required parameters are made in request.'''
+        required = set(["year", "month", "day"]) <= set(request.values.keys())
+        if required is False:
+            return jsonify(msg="Missing parameter."), 400
+
+        date_requested = ''
+        for param in ['year', 'month', 'day']:
+            date_requested+=request.form[param] + '/'
+
+        book_inquiry = datetime.strptime(date_requested[:-1], "%Y/%m/%d")
+
+        arr = []
+        for place_book in (PlaceBook
+                           .select()
+                           .where(PlaceBook.place == place_id)
+                           .iterator()):
+            start = place_book.date_start
+            end = start + timedelta(days=place_book.number_nights)
+
+            if book_inquiry >= start and book_inquiry < end:
+                return jsonify(available=False), 200
+
+        return jsonify(available=True), 200
+
+
+@app.route('/states/<int:state_id>/places', methods=['GET'])
+def handle_place_state_id(state_id):
+    '''Retrieve all the places with a state of that passed in the URL.
+
+    Keyword arguments:
+    state_id -- The id of the state that this place belongs.
+    '''
+    if request.method == 'GET':
+        try:
+            State.select().where(State.id == state_id).get()
+        except State.DoesNotExist:
+            return jsonify("No state exists with this id."), 400
+
+        list = ListStyle().list((Place
+                                .select()
+                                .join(City)
+                                .join(State)
+                                .where(State.id == state_id)), request)
+
+        return jsonify(list), 200
+
+
+@app.route('/states/<int:state_id>/cities/<int:city_id>/places',
+           methods=['GET', 'POST'])
+def handle_place_city_id(state_id, city_id):
+    '''With a GET request method, select the places belonging to the particular
+    city (based on the city id) and store their hashes in an array to be
+    returned. Will not set attribute passed as `updated_at` or `created_at`.
+
+    Keyword arguments:
+    state_id: The id of the place.
+    city_id: The id of the city.
+    '''
 
     if request.method == 'GET':
+        try:
+            places = Place.select().where(Place.city == city_id).get()
+        except Place.DoesNotExist:
+            return jsonify("There is no place with this id, in this state."),
+            400
 
-        place_query = Place.select().join(City).where(City.id == city_id, City.state == state_id)
-        response = [i.to_hash() for i in place_query]
-
-        if response:
-            return jsonify(response)
-
-        output = {'error': 'No results found'}
-        response = jsonify(output)
-        response.status_code = 404
-        return response
+        arr = []
+        for place in Place.select().where(Place.city == city_id):
+            arr.append(place.to_dict())
+        return jsonify(arr), 200
 
     elif request.method == 'POST':
+        params = request.values
+        place = Place()
 
-        place = Place.create(
-            owner_id=request.form['owner_id'],
-            city_id=city_id,
-            name=request.form['name'],
-            description=request.form['description'],
-            number_rooms=request.form['number_rooms'],
-            number_bathrooms=request.form['number_bathrooms'],
-            max_guest=request.form['max_guest'],
-            price_by_night=request.form['price_by_night'],
-            latitude=request.form['latitude'],
-            longitude=request.form['longitude']
-        )
-        return jsonify(place.to_hash())
+        '''Check that all the required parameters are made in request.'''
+        required = set(["owner", "name"]) <= set(request.values.keys())
+        if required is False:
+            return jsonify(msg="Missing parameter."), 400
+
+        for key in params:
+            if key == 'updated_at' or key == 'created_at':
+                continue
+            setattr(place, key, params.get(key))
+
+        place.city = city_id
+        place.save()
+        return jsonify(place.to_dict()), 200
