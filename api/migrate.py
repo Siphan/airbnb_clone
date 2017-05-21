@@ -2,21 +2,26 @@
 the database. The import of base is required, in addition for access to
 BaseModel class, for base.py to access the variables set up in config.py.
 '''
-from app.models.user import User
-from app.models.state import State
-from app.models.city import City
-from app.models.place import Place
-from app.models.place_book import PlaceBook
-from app.models.amenity import Amenity
-from app.models.place_amenity import PlaceAmenities
-from app.models.review import Review
-from app.models.review_user import ReviewUser
-from app.models.review_place import ReviewPlace
-from app.models.base import BaseModel
+import peewee
 from peewee import *
+from app.models.amenity import Amenity
+from app.models.city import City
+from app.models.place_amenity import PlaceAmenities
+from app.models.place_book import PlaceBook
+from app.models.state import State
+from app.models.user import User
+from app.models.place import Place
+from app.models.base import *
 
-tables = [User, State, City, Place, PlaceBook, Amenity, PlaceAmenities,
-          Review, ReviewUser, ReviewPlace]
+def create_database():
+    db.connect()
+    db.create_tables([Amenity,
+                      City,
+                      PlaceAmenities,
+                      PlaceBook,
+                      State,
+                      User,
+                      Place])
 
-BaseModel.database.connect()
-BaseModel.database.create_tables(tables)
+if __name__ == '__main__':
+    create_database()
