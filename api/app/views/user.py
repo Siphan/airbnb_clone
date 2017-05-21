@@ -1,81 +1,80 @@
-"""Import app and models"""
-from app import app
+from flask import request, jsonify
 from app.models.user import User
+from return_styles import ListStyle
+from app import app
 
-"""Import packages"""
-from flask_json import jsonify, request
 
 @app.route('/users', methods=['GET', 'POST'])
-def get_users():
-    """Get list of all users in the database"""
-
+def handle_users():
+    '''Returns all the users from the database as JSON objects with a GET
+    request, or adds a new user to the database with a POST request. Refer to
+    exception rules of peewee `get()` method for additional explanation of
+    how the POST request is handled:
+    http://docs.peewee-orm.com/en/latest/peewee/api.html#SelectQuery.get
+    '''
     if request.method == 'GET':
-
-        user_query = User.select()
-        response = [i.to_hash() for i in user_query] #<---
-
-        if response:
-            return jsonify(response)
-
-        output = {'error': 'No results found'}
-        response = jsonify(output)
-        response.status_code = 404
-        return response
+        list = ListStyle().list(User.select(), request)
+        return jsonify(list), 200
 
     elif request.method == 'POST':
+        try:
+            User.select().where(User.email == request.form['email']).get()
+            return jsonify(code=10000, msg="Email already exists"), 409
+        except User.DoesNotExist:
+            params = request.values
+            user = User()
 
-        duplicate_email = User.select().where(User.email == request.form['email'])
+            '''Check that all the required parameters are made in request.'''
+            required = set(["first_name", "last_name", "email",
+                            "password"]) <= set(params.keys())
+            if required is False:
+                return jsonify(msg="Missing parameter."), 400
 
-        if not duplicate_email:
-
-            user = User.create(
-                email=request.form['email'],
-                first_name=request.form['first_name'],
-                last_name=request.form['last_name'],
-                password=""
-            )
-
-            user.set_password(request.form['password'])
-            return jsonify(user.to_hash())
+            for key in params:
+                if key == 'updated_at' or key == 'created_at':
+                    continue
+                setattr(user, key, params.get(key))
+            user.save()
+            return jsonify(user.to_dict()), 201
 
 
-        output = {'code': 10000, 'msg': 'Email already exists'}
-        response = jsonify(output)
-        response.status_code = 409
-        return response
+@app.route('/users/<int:user_id>', methods=['GET', 'PUT', 'DELETE'])
+def handle_user_id(user_id):
+    '''Select the user with the id from the database and store as the variable
+    `user` with a GET request method. Update the data of the particular user
+    with a PUT request method. This will take the parameters passed and update
+    only those values. Note that attempting to update the email of the user,
+    or values that the user does not have as attributes will result in their
+    respect exceptions. Remove the user with this id from the database with
+    a DELETE request method.
 
-@app.route('/users/<user_id>', methods=['GET', 'PUT', 'DELETE'])
-def get_users_id(user_id):
-    """Get the given user id"""
+    Keyword arguments:
+    user_id: The id of the user from the database.
+    '''
+    try:
+        user = User.select().where(User.id == user_id).get()
+    except User.DoesNotExist:
+        return jsonify(msg="User does not exist."), 404
 
     if request.method == 'GET':
-        user_query = User.get(User.id == user_id)
-        return jsonify(user_query.to_hash())
+        return jsonify(user.to_dict()), 200
 
     elif request.method == 'PUT':
-
-        for key in request.values.keys():
-            if key == 'id':
-                user_query.id = request.values[key]
-            elif key == 'first_name':
-                user_query.first_name = request.values[key]
-            elif key == 'last_name':
-                user_query.last_name = request.values[key]
-            elif key == 'is_admin':
-                user_query.is_admin = request.values[key]
-            elif key == 'email' or key == 'created_at' or key == 'updated_at':
-                output = {'error': key + ' Not accepted'}
-                error = jsonify(output)
-                error.status_code = 400
-                return error
-
-        user_query.save()
-        return jsonify(user_query.to_hash())
+        params = request.values
+        for key in params:
+            if key == 'email':
+                return jsonify(msg="You may not change the user's email."), 409
+            if key == 'updated_at' or key == 'created_at':
+                continue
+            else:
+                setattr(user, key, params.get(key))
+        user.save()
+        return jsonify(msg="User information updated successfully."), 201
 
     elif request.method == 'DELETE':
-
-        user_query = User.get(User.id == user_id)
-        user_query.delete_instance()
-        user_query.save()
-        response = {'msg': 'Deleted user at id: ' +  user_id }
-        return jsonify(response)
+        try:
+            user = User.delete().where(User.id == user_id)
+        except User.DoesNotExist:
+            return jsonify(msg="User does not exist."), 200
+        user.execute()
+        return jsonify(msg="User deleted successfully."), 200

@@ -1,17 +1,19 @@
-"""Import all models"""
+'''Imports db variable (the database to connect to on the server), Place, and
+Amenity classes and defines a PlaceAmenities class that inherits from the
+peewee Model class. For more information regarding the peewee Model see:
+http://docs.peewee-orm.com/en/latest/peewee/models.html.
+'''
 from base import *
-from peewee import Model
-from playhouse.fields import ManyToManyField
+from peewee import *
 from place import Place
 from amenity import Amenity
 
+
 class PlaceAmenities(Model):
-    """Model to create a joint table between Places and Amenities
-    PlaceAmenities & BaseModel are the only 2 classes inherited from peewee
-    """
-    place = ManyToManyField(Place)
-    amenity = ManyToManyField(Amenity)
+    place = ForeignKeyField(Place)
+    amenity = ForeignKeyField(Amenity)
 
     class Meta:
-        """Connect the model to the DB"""
-        database = database
+        '''Define the database from which this class is created. In this case,
+        the same database that is used for BaseModel.'''
+        database = db

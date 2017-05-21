@@ -1,19 +1,23 @@
-"""Import base model as well as state model since it is linked to parent table"""
+'''Imports BaseModel and State classes and defines a City class that inherits
+from BaseModel class.
+'''
 from base import *
 from state import State
+from peewee import *
+
 
 class City(BaseModel):
-    """Define City model. Parent table is State"""
-    name = peewee.CharField(128, null=False, unique=True)
-    state = peewee.ForeignKeyField(State, related_name="cities", on_delete='cascade')
+    '''Define a City class for the city table of the database. Has a
+    foreign key from the state table.
+    '''
+    name = CharField(128, null=False)
+    state = ForeignKeyField(State, related_name='cities', on_delete='CASCADE')
 
-    def to_hash(self):
-        """Return a hash with all City's info"""
-        hash = {
-            'id': self.id,
-            'created_at': self.created_at.strftime("%Y/%m/%d %H:%M:%S"),
-            'updated_at': self.updated_at.strftime("%Y/%m/%d %H:%M:%S"),
-            'name': self.name,
-            'state_id': self.state_id
-        }
-        return hash
+    def to_dict(self):
+        '''Returns the BaseModel data, along with this model model's data as a
+        hash.
+        '''
+        data = {}
+        data['name'] = self.name
+        data['state_id'] = self.state.id
+        return dict(self.base_to_dict().items() + data.items())
