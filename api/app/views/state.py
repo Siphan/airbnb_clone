@@ -1,58 +1,60 @@
-"""Import app and models"""
-from app import app
+from flask import request, jsonify
 from app.models.state import State
-
-"""Import packages"""
-from flask_json import jsonify, request
+from return_styles import ListStyle
+from app import app
 
 
 @app.route('/states', methods=['GET', 'POST'])
-def states():
-    """Get a list of all states in the database."""
-
+def handle_states():
+    '''Returns all the states from the database as JSON objects with a GET
+    request, or adds a new state to the database with a POST request. Refer to
+    exception rules of peewee `get()` method for additional explanation of
+    how the POST request is handled:
+    http://docs.peewee-orm.com/en/latest/peewee/api.html#SelectQuery.get
+    '''
     if request.method == 'GET':
-
-        state_query = State.select()
-        response = [i.to_hash() for i in state_query]
-
-        if response:
-            return jsonify(response)
-        else:
-            output = {'error': 'No results found'}
-            response = jsonify(output)
-            response.status_code = 404
-            return response
+        list = ListStyle().list(State.select(), request)
+        return jsonify(list), 200
 
     elif request.method == 'POST':
+        params = request.values
 
-        duplicate_name = State.select().where(State.name == request.form['name'])
+        '''Check that all the required parameters are made in request.'''
+        required = set(["name"]) <= set(request.values.keys())
+        if required is False:
+            return jsonify(msg="Missing parameter."), 400
 
-        if not duplicate_name:
+        try:
+            State.select().where(State.name == request.form['name']).get()
+            return jsonify(code=10001, msg="State already exists"), 409
+        except State.DoesNotExist:
+            state = State.create(name=request.form['name'])
+            return jsonify(state.to_dict()), 201
 
-            state = State.create(
-                name=request.form['name']
-            )
-            return jsonify(state.to_hash())
 
+@app.route('/states/<int:state_id>', methods=['GET', 'DELETE'])
+def handle_state_id(state_id):
+    '''Select the state with the id from the database and store as the variable
+    `state` with a GET request method. Update the data of the particular state
+    with a PUT request method. This will take the parameters passed and update
+    only those values. Remove the state with this id from the database with
+    a DELETE request method.
 
-        output = {'code': 10001, 'msg': 'State already exists'}
-        response = jsonify(output)
-        response.status_code = 409
-        return response
-
-@app.route('/states/<state_id>', methods=['GET', 'DELETE'])
-def states_id(state_id):
-    """Return the id of a given state"""
+    Keyword arguments:
+    state_id: The id of the state from the database.
+    '''
+    try:
+        state = State.select().where(State.id == state_id).get()
+    except State.DoesNotExist:
+        return jsonify(msg="There is no state with this id."), 404
 
     if request.method == 'GET':
-
-        state_query = State.get(State.id == state_id)
-        return jsonify(state_query.to_hash())
+        return jsonify(state.to_dict()), 200
 
     elif request.method == 'DELETE':
-
-        state_query = State.get(State.id == state_id)
-        state_query.delete_instance()
-        state_query.save()
-        response = {'msg': 'Deleted state at id: ' +  state_id }
-        return jsonify(response)
+        try:
+            state = State.delete().where(State.id == state_id)
+        except State.DoesNotExist:
+            raise Exception("There is no state with this id.")
+        state.execute()
+        return jsonify(msg="State deleted successfully."), 200

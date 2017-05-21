@@ -1,26 +1,40 @@
-"""Import all models"""
+'''Imports BaseModel, Place, and User classes and defines a PlaceBook class
+that inherits from BaseModel class.
+'''
 from base import *
+from peewee import *
 from place import Place
 from user import User
+from datetime import datetime
+
 
 class PlaceBook(BaseModel):
-    """Define booking model"""
-    place = peewee.ForeignKeyField(Place)
-    user = peewee.ForeignKeyField(User, related_name="places_booked")
-    is_validated = peewee.BooleanField(default=False)
-    date_start = peewee.DateTimeField(null=False)
-    number_nights = peewee.IntegerField(default=1)
+    place = ForeignKeyField(Place)
+    user = ForeignKeyField(User, related_name='placesbooked')
+    is_validated = BooleanField(default=False)
+    date_start = DateTimeField(null=False)
+    number_nights = IntegerField(default=1)
 
-    def to_hash(self):
-        """Return a hash with info on booking made"""
-        hash = {
-            'id': self.id,
-            'created_at': self.created_at.strftime("%Y/%m/%d %H:%M:%S"),
-            'updated_at': self.updated_at.strftime("%Y/%m/%d %H:%M:%S"),
-            'place_id': self.place_id,
-            'user_id': self.user_id,
-            'is_validated': self.is_validated,
-            'date_start': self.date_start.strftime("%Y/%m/%d %H:%M:%S"),
-            'number_nights': self.number_nights
-        }
-        return hash
+    def to_dict(self):
+        '''Returns the BaseModel data, along with this model model's data as a
+        hash.
+        '''
+
+        data = {}
+        data['place_id'] = self.place.id
+        data['user_id'] = self.user.id
+        data['is_validated'] = self.is_validated
+
+        '''This condition is necessary to handle cases where this method is
+        being called or when the object is unicode or a string. It keeps the
+        formatting consistent for both returned strings.
+        '''
+        if type(self.date_start) == unicode:
+            data['date_start'] = (datetime
+                                  .strptime(self.date_start,
+                                            "%Y/%m/%d %H:%M:%S")
+                                  .strftime("%Y/%m/%d %H:%M:%S"))
+        else:
+            data['date_start'] = self.date_start.strftime("%Y/%m/%d %H:%M:%S")
+        data['number_nights'] = self.number_nights
+        return dict(self.base_to_dict().items() + data.items())
