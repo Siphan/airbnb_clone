@@ -1,32 +1,41 @@
-'''Configures the variables for Airbnb clone based on the current value of the
-environment variable AIRBNB_ENV. The default mode is that of user
-'airbnb_user_dev'.
-'''
+"""
+This script defines some variables for our RestAPI
+that are respective to the development and production environments
+"""
+
 import os
 
-env = os.environ.get("AIRBNB_ENV")
+env = os.environ.get('AIRBNB_ENV')
 
-DEBUG = True
-HOST = "localhost"
-PORT = 3333
-DATABASE = dict(host="158.69.84.193",
-                port=3306,
-                charset="utf8",
-                user="airbnb_user_dev",
-                database="airbnb_dev",
-                password="airbnb_user_dev")
+if env == 'development':
+    DEBUG = True
+    HOST = 'localhost'
+    PORT = 3333
+    DATABASE = { 'host': '158.69.84.193',
+                 'user': 'airbnb_user_dev',
+                 'database': 'airbnb_dev',
+                 'port': 3306,
+                 'charset': 'utf8',
+                 'password': os.environ.get('AIRBNB_DATABASE_PWD_DEV') }
 
-if env == "production":
+elif env == 'production':
     DEBUG = False
-    HOST = "0.0.0.0"
+    HOST = '0.0.0.0'
     PORT = 3000
-    DATABASE.update({"user": "airbnb_user_prod",
-                     "database": "airbnb_prod",
-                     "password": "airbnb_user_prod"})
+    DATABASE = { 'host': '158.69.84.193',
+                 'user': 'airbnb_user_prod',
+                 'database': 'airbnb_prod',
+                 'port': 3306,
+                 'charset': 'utf8',
+                 'password': os.environ.get('AIRBNB_DATABASE_PWD_PROD') }
 
 elif env == "test":
     DEBUG = False
+    HOST = 'localhost'
     PORT = 5555
-    DATABASE.update({"user": "airbnb_user_test",
-                     "database": "airbnb_test",
-                     "password": os.environ.get("AIRBNB_DATABASE_PWD_TEST")})
+    DATABASE = { 'host': '158.69.84.193',
+                 'user': 'airbnb_user_test',
+                 'database': 'airbnb_test',
+                 'port': 3306,
+                 'charset': 'utf8',
+                 'password': os.environ.get('AIRBNB_DATABASE_PWD_TEST') }
