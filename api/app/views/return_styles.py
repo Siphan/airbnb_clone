@@ -1,3 +1,6 @@
+""" Create pagination so that we don't load all places, all states,
+    all cities etc at once.
+"""
 from flask import request
 
 
