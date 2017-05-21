@@ -1,20 +1,22 @@
+""" Import peewee models from their respective folders and create the tables in
+the database. The import of base is required, in addition for access to
+BaseModel class, for base.py to access the variables set up in config.py.
 """
-This script creates tables from each model defined before:
-User, State, City, Place, PlaceBook, Amenity, PlaceAmenities
-"""
-from base import database
-from user import User
-from state import State
-from city import City
-from place import Place
-from place_book import PlaceBook
-from amenity import Amenity
-from place_amenity import PlaceAmenities
+from app.models.user import User
+from app.models.state import State
+from app.models.city import City
+from app.models.place import Place
+from app.models.place_book import PlaceBook
+from app.models.amenity import Amenity
+from app.models.place_amenity import PlaceAmenities
+from app.models.review import Review
+from app.models.review_user import ReviewUser
+from app.models.review_place import ReviewPlace
+from app.models.base import BaseModel
+from peewee import *
 
-"""Initializes each table in the database"""
-database.connect()
-database.create_tables([User, State, City, Place, PlaceBook, Amenity, PlaceAmenities], safe=True)
-database.close()
+tables = [User, State, City, Place, PlaceBook, Amenity, PlaceAmenities,
+          Review, ReviewUser, ReviewPlace]
 
-test_record=User(email='foo', password='bar', first_name='foo',last_name='bar')
-test_record.save()
+BaseModel.database.connect()
+BaseModel.database.create_tables(tables)
