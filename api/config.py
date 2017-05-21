@@ -26,7 +26,7 @@ if env == "production":
 
 elif env == "test":
     DEBUG = False
-    PORT = 5556
+    PORT = 5555
     DATABASE.update({"user": "airbnb_user_test",
                      "database": "airbnb_test",
                      "password": os.environ.get("AIRBNB_DATABASE_PWD_TEST")})
