@@ -1,3 +1,7 @@
+"""
+    This module tests our app feature that returns local and UTC
+    dates and times in the format 'year month day hour:minute'.
+"""
 import unittest
 import json
 import time
